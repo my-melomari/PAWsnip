@@ -1,0 +1,62 @@
+# 🐰 These are snippets and will not work as a whole. For demonstration of skill purposes only. Full program is NDA protected.
+
+def ###(
+    v_reference_db: dict,
+    identity_threshold: float = 0.90,
+    num_clusters: float | None = None
+) -> tuple[dict, dict, dict, float]:
+
+    names = list(v_reference_db.keys())
+    seqs  = [clean_sequence(v_reference_db[n]) for n in names]
+    n     = len(seqs)
+
+    # 1) compute identity matrix
+    identity_matrix = np.zeros((n, n))
+    ###
+    for i in range(n):
+        for j in range(i+1, n):
+            aln  = aligner.align(seqs[i], seqs[j])[0]
+            iden = compute_identity(aln[0], aln[1])
+            identity_matrix[i,j] = identity_matrix[j,i] = iden
+        identity_matrix[i,i] = 1.0
+
+    # 2) linkage on (1 - identity)
+    condensed = squareform(1 - identity_matrix)
+    Z = linkage(condensed, method="average")
+
+######################
+
+    cluster_labels = dict(zip(names, labels))
+    cluster_sizes  = {lbl: sum(1 for x in labels if x == lbl) for lbl in set(labels)}
+    pruned = {}
+    for lbl in set(labels):
+        members = [i for i,c in enumerate(labels) if c == lbl]
+        winner = max(members, key=lambda i: sum(identity_matrix[i,j] for j in members))
+        pruned[names[winner]] = v_reference_db[names[winner]]
+
+    print(f"[CLUSTER] {n} → {len(pruned)} representatives")
+    return pruned, cluster_labels, cluster_sizes, thr
+
+######################
+
+def get_critical_set(chain_type, crit_option):
+    regs = get_region_dicts(include_imgt=True)
+    critical_set = set()
+    if crit_option != "none":
+        if chain_type == "H":
+            if crit_option == "vernier":
+                critical_set = set(regs["vh_vernier_residues"].keys())
+            elif crit_option == "interface":
+                critical_set = set(regs["vh_interface_residues"].keys())
+            elif crit_option == "both":
+                critical_set = set(regs["vh_vernier_residues"].keys()).union(regs["vh_interface_residues"].keys())
+        else:
+            if crit_option == "vernier":
+                critical_set = set(regs["vl_vernier_residues"].keys())
+            elif crit_option == "interface":
+                critical_set = set(regs["vl_interface_residues"].keys())
+            elif crit_option == "both":
+                critical_set = set(regs["vl_vernier_residues"].keys()).union(regs["vl_interface_residues"].keys())
+    return critical_set
+
+######################
