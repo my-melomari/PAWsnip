@@ -1,2 +1,2 @@
 # PAWsnip
-Snippets from a program I created from scratch (project for ex-employer)
+Snippets from a software I created from scratch as the lead backend developer (project for ex-employer)
